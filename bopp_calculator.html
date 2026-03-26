@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOPP Cylinder Cost Calculator</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --text-main: #111827;
+            --text-muted: #4b5563;
+            --border: #e5e7eb;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-main);
+        }
+
+        /* Settings button - top right corner */
+        .settings-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+
+        .settings-btn:hover {
+            transform: rotate(30deg) scale(1.05);
+            background: white;
+        }
+
+        /* Settings Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 28px 24px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+            animation: popIn 0.25s ease-out;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.93);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .modal .modal-sub {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .modal .form-group {
+            margin-bottom: 16px;
+        }
+
+        .modal .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+
+        .modal .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+            color: var(--text-main);
+        }
+
+        .modal .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .modal-note {
+            background: #fef9ec;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            color: #92400e;
+            margin-bottom: 20px;
+        }
+
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-btns button {
+            flex: 1;
+            padding: 11px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-save {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-cancel {
+            background: #f3f4f6;
+            color: var(--text-main);
+        }
+
+        .btn-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        /* Main Card */
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            max-width: 480px;
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
+            padding: 32px 24px;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+
+        /* Rate info badge */
+        .rate-badge {
+            display: inline-flex;
+            gap: 10px;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%);
+            border: 1px solid rgba(79, 70, 229, 0.18);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-bottom: 22px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .rate-badge span {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 7px;
+            color: var(--text-main);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+            color: var(--text-main);
+        }
+
+        .form-group input[readonly] {
+            background: #f9fafb;
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .form-group input:not([readonly]):focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        .input-unit {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            pointer-events: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            margin-top: 8px;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .results {
+            margin-top: 28px;
+            padding-top: 22px;
+            border-top: 1px solid var(--border);
+            display: none;
+            animation: slideUp 0.4s ease-out forwards;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .result-item span:first-child {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .result-item span:last-child {
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .result-highlight {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+            border: 1px solid rgba(79, 70, 229, 0.2);
+        }
+
+        .result-highlight span:last-child {
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .difference-positive span:last-child {
+            color: var(--success) !important;
+        }
+
+        .difference-negative span:last-child {
+            color: var(--danger) !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Settings gear button -->
+    <button class="settings-btn" onclick="openSettings()" title="Rate Settings">⚙️</button>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>⚙️ Rate Settings</h2>
+            <p class="modal-sub">Yahan rates update karein jab bhi zaroorat ho</p>
+
+            <div class="modal-note">
+                📌 <strong>Current Logic:</strong> Agar Circumference &lt; 600 mm to Rate 1 lagega, 600 ya zyada ho to
+                Rate 2 lagega.
+            </div>
+
+            <div class="form-group">
+                <label>Rate 1 — Circumference &lt; 600 mm (per sq.cm)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="settingRate1" step="0.01" min="0" placeholder="1.90">
+                    <span class="input-unit">₹</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Rate 2 — Circumference ≥ 600 mm (per sq.cm)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="settingRate2" step="0.01" min="0" placeholder="2.00">
+                    <span class="input-unit">₹</span>
+                </div>
+            </div>
+
+            <div class="modal-btns">
+                <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+                <button class="btn-save" onclick="saveSettings()">Save Rates</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Calculator Card -->
+    <div class="container">
+        <div class="header">
+            <h1>BOPP Calculator</h1>
+            <p>Calculate your printing cylinder costs</p>
+        </div>
+
+        <!-- Rate info display -->
+        <div class="rate-badge">
+            &lt;600mm → <span id="displayRate1">₹1.90</span>/sq.cm &nbsp;|&nbsp; ≥600mm → <span
+                id="displayRate2">₹2.00</span>/sq.cm
+        </div>
+
+        <form id="calculatorForm">
+            <div class="form-group">
+                <label for="circumference">Cylinder Circumference</label>
+                <div class="input-wrapper">
+                    <input type="number" id="circumference" placeholder="0.00" step="any" required>
+                    <span class="input-unit">mm</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="length">Cylinder Length</label>
+                <div class="input-wrapper">
+                    <input type="number" id="length" placeholder="0.00" step="any" required>
+                    <span class="input-unit">mm</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="colors">Number of Cylinders (Colors)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="colors" placeholder="1" min="1" step="1" required>
+                    <span class="input-unit">qty</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="rate">Rate per sq.cm (Auto)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="rate" placeholder="—" step="any" required readonly>
+                    <span class="input-unit">₹</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="charged">Amount Charged to Client</label>
+                <div class="input-wrapper">
+                    <input type="number" id="charged" placeholder="0.00" step="any" required>
+                    <span class="input-unit">₹</span>
+                </div>
+            </div>
+
+            <button type="button" class="btn" onclick="calculateCost()">Calculate Costs</button>
+        </form>
+
+        <div class="results" id="resultsContainer">
+            <div class="result-item">
+                <span>Total Area per Cylinder:</span>
+                <span id="resArea">0.00 sq.cm</span>
+            </div>
+            <div class="result-item">
+                <span>Cost per Cylinder:</span>
+                <span id="resCylinderCost">0.00</span>
+            </div>
+            <div class="result-item result-highlight">
+                <span>Total Cost (<span id="resColors">0</span> colors):</span>
+                <span id="resTotalCost">0.00</span>
+            </div>
+            <div class="result-item" id="diffBox">
+                <span>Margin (Charged − Cost):</span>
+                <span id="resDifference">0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ─── Rate Storage ───────────────────────────────────────────────
+        let RATE_LOW = parseFloat(localStorage.getItem('bopp_rate_low')) || 1.90; // circumference < 600
+        let RATE_HIGH = parseFloat(localStorage.getItem('bopp_rate_high')) || 2.00; // circumference >= 600
+
+        function refreshRateBadge() {
+            document.getElementById('displayRate1').textContent = '₹' + RATE_LOW.toFixed(2);
+            document.getElementById('displayRate2').textContent = '₹' + RATE_HIGH.toFixed(2);
+        }
+        refreshRateBadge();
+
+        // ─── Settings Modal ──────────────────────────────────────────────
+        function openSettings() {
+            document.getElementById('settingRate1').value = RATE_LOW.toFixed(2);
+            document.getElementById('settingRate2').value = RATE_HIGH.toFixed(2);
+            document.getElementById('settingsModal').classList.add('open');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('open');
+        }
+
+        function saveSettings() {
+            const r1 = parseFloat(document.getElementById('settingRate1').value);
+            const r2 = parseFloat(document.getElementById('settingRate2').value);
+            if (isNaN(r1) || isNaN(r2) || r1 <= 0 || r2 <= 0) {
+                alert('Kripya valid rates daalein (0 se zyada).');
+                return;
+            }
+            RATE_LOW = r1;
+            RATE_HIGH = r2;
+            localStorage.setItem('bopp_rate_low', RATE_LOW);
+            localStorage.setItem('bopp_rate_high', RATE_HIGH);
+            refreshRateBadge();
+
+            // Re-apply rate if circumference already entered
+            const circ = parseFloat(document.getElementById('circumference').value);
+            if (!isNaN(circ)) {
+                document.getElementById('rate').value = (circ < 600 ? RATE_LOW : RATE_HIGH).toFixed(2);
+            }
+            closeSettings();
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('settingsModal').addEventListener('click', function (e) {
+            if (e.target === this) closeSettings();
+        });
+
+        // ─── Auto-set rate from circumference ───────────────────────────
+        document.getElementById('circumference').addEventListener('input', function () {
+            const circ = parseFloat(this.value);
+            const rateInput = document.getElementById('rate');
+            if (!isNaN(circ) && circ > 0) {
+                // < 600 → RATE_LOW (1.90), >= 600 → RATE_HIGH (2.00)
+                rateInput.value = (circ < 600 ? RATE_LOW : RATE_HIGH).toFixed(2);
+            } else {
+                rateInput.value = '';
+            }
+        });
+
+        // ─── Main Calculation ────────────────────────────────────────────
+        function calculateCost() {
+            const circumference = parseFloat(document.getElementById('circumference').value) || 0;
+            const length = parseFloat(document.getElementById('length').value) || 0;
+            const colors = parseInt(document.getElementById('colors').value) || 0;
+            const rate = parseFloat(document.getElementById('rate').value) || 0;
+            const charged = parseFloat(document.getElementById('charged').value) || 0;
+
+            if (!circumference || !length || !colors || !rate) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            const area = (circumference * length) / 100; // mm² → sq.cm
+            const cylinderCost = area * rate;
+            const totalCost = cylinderCost * colors;
+            const difference = charged - totalCost;
+
+            const fmt = (n) => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            document.getElementById('resArea').textContent = fmt(area) + ' sq.cm';
+            document.getElementById('resCylinderCost').textContent = '₹' + fmt(cylinderCost);
+            document.getElementById('resColors').textContent = colors;
+            document.getElementById('resTotalCost').textContent = '₹' + fmt(totalCost);
+
+            const diffSpan = document.getElementById('resDifference');
+            const diffBox = document.getElementById('diffBox');
+            diffSpan.textContent = (difference >= 0 ? '+' : '') + '₹' + fmt(Math.abs(difference)) * (difference < 0 ? -1 : 1);
+            diffSpan.textContent = (difference >= 0 ? '+₹' : '-₹') + fmt(Math.abs(difference));
+
+            diffBox.className = 'result-item';
+            if (difference > 0) diffBox.classList.add('difference-positive');
+            else if (difference < 0) diffBox.classList.add('difference-negative');
+
+            document.getElementById('resultsContainer').classList.add('active');
+            setTimeout(() => {
+                document.getElementById('resultsContainer').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 50);
+        }
+
+        // Enter key support
+        document.getElementById('calculatorForm').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); calculateCost(); }
+        });
+    </script>
+</body>
+
+</html>
